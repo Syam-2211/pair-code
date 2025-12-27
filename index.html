@@ -19,21 +19,32 @@
         <section id="pairing-section">
             <h2>Pair Your WhatsApp Account</h2>
             <div id="pairing-container">
-                <div id="pairing-code-display" class="pairing-code">
+                
+                <div id="phone-input-container">
+                    <label for="phone-number" style="display:block; margin-bottom:0.5rem; font-weight:bold;">Enter your WhatsApp Number (with country code):</label>
+                    <input type="text" id="phone-number" placeholder="Example: 628123456789" style="padding: 10px; font-size: 1rem; margin-bottom: 10px; width: 100%; max-width: 300px; border: 1px solid #ddd; border-radius: 5px;">
+                    <br>
+                    <button id="submit-phone-btn" class="btn">Get Pairing Code</button>
+                </div>
+
+                <div id="pairing-code-display" class="pairing-code hidden">
                     <span id="pairing-code">------</span>
                 </div>
+
                 <div id="loading" class="hidden">
                     <div class="spinner"></div>
-                    <p>Generating Pairing Code...</p>
+                    <p>Connecting to Bot...</p>
                 </div>
+
                 <div id="pairing-input" class="hidden">
                     <label for="code-input">Enter the 6-digit code from WhatsApp:</label>
                     <input type="text" id="code-input" maxlength="6" pattern="[0-9]{6}" placeholder="000000">
                     <button id="verify-btn" class="btn">Verify Code</button>
                 </div>
             </div>
+            
             <div id="status-message" class="status hidden"></div>
-            <button id="refresh-btn" class="btn">Generate New Code</button>
+            <button id="refresh-btn" class="btn hidden">Generate New Code</button>
         </section>
 
         <section id="instructions">
@@ -42,8 +53,8 @@
                 <li>Open WhatsApp on your phone</li>
                 <li>Tap the menu (three dots) and select "Linked Devices"</li>
                 <li>Tap "Link a Device"</li>
-                <li>Scan the QR code above</li>
-                <li>Wait for confirmation</li>
+                <li><strong>Select "Link with phone number instead"</strong></li>
+                <li>Enter the code displayed above into your phone</li>
             </ol>
         </section>
 
@@ -59,7 +70,7 @@
             </details>
             <details>
                 <summary>What if the pairing code doesn't work?</summary>
-                <p>Try generating a new code or ensure you're entering the correct 6-digit code in WhatsApp.</p>
+                <p>Try generating a new code or ensure you're entering the correct 8-digit code in WhatsApp.</p>
             </details>
         </section>
     </main>
