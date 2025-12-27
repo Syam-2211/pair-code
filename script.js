@@ -1,143 +1,124 @@
-// Mock WhatsApp Bot Pairing Script
-
 document.addEventListener('DOMContentLoaded', function() {
-    const qrContainer = document.getElementById('qr-code');
+    // Select DOM elements
+    const phoneInputContainer = document.getElementById('phone-input-container');
+    const phoneNumberInput = document.getElementById('phone-number');
+    const submitPhoneBtn = document.getElementById('submit-phone-btn');
+    
+    const pairingCodeDisplay = document.getElementById('pairing-code-display');
+    const pairingCodeSpan = document.getElementById('pairing-code');
+    
     const loadingElement = document.getElementById('loading');
     const statusMessage = document.getElementById('status-message');
     const refreshBtn = document.getElementById('refresh-btn');
 
-    let qrCodeInstance = null;
-    let pairingTimeout = null;
+    // --- UI Helper Functions ---
 
-    // Function to show loading state
     function showLoading() {
-        qrContainer.innerHTML = '';
+        phoneInputContainer.classList.add('hidden');
+        pairingCodeDisplay.classList.add('hidden');
         loadingElement.classList.remove('hidden');
         statusMessage.classList.add('hidden');
-        refreshBtn.disabled = true;
+        refreshBtn.classList.add('hidden');
     }
 
-    // Function to hide loading state
-    function hideLoading() {
+    function showPairingCode(code) {
         loadingElement.classList.add('hidden');
-        refreshBtn.disabled = false;
+        phoneInputContainer.classList.add('hidden'); // Keep phone input hidden
+        pairingCodeDisplay.classList.remove('hidden'); // Show the code
+        pairingCodeSpan.textContent = code; // Set the code text
+        refreshBtn.classList.remove('hidden'); // Allow user to try again
     }
 
-    // Function to show status message
+    function showInputForm() {
+        loadingElement.classList.add('hidden');
+        pairingCodeDisplay.classList.add('hidden');
+        phoneInputContainer.classList.remove('hidden');
+        refreshBtn.classList.add('hidden');
+    }
+
     function showStatus(message, type = 'info') {
         statusMessage.textContent = message;
         statusMessage.className = `status ${type}`;
         statusMessage.classList.remove('hidden');
     }
 
-    // Function to generate mock QR code
-    function generateQRCode() {
+    // --- Core Logic: Fetch Pairing Code ---
+
+    async function getPairingCode() {
+        // 1. Get and Validate Phone Number
+        let phoneNumber = phoneNumberInput.value.trim();
+        
+        // Basic validation: Ensure it contains only numbers and is long enough
+        phoneNumber = phoneNumber.replace(/[^0-9]/g, ''); // Remove non-numeric chars
+        
+        if (phoneNumber.length < 10) {
+            showStatus('Please enter a valid WhatsApp number (e.g., 628123456789)', 'error');
+            return;
+        }
+
+        // 2. Prepare UI
         showLoading();
+        showStatus('Requesting Pairing Code from Bot...', 'info');
 
-        // Clear any existing QR code
-        if (qrCodeInstance) {
-            qrCodeInstance.clear();
-        }
+        try {
+            // =================================================================
+            // ⚠️ IMPORTANT: REPLACE THE URL BELOW WITH YOUR REAL BOT SERVER URL
+            // =================================================================
+            // Example: 'https://my-whatsapp-bot.herokuapp.com/pair'
+            // The backend should expect a query param ?number=...
+            const apiUrl = `/pair?number=${phoneNumber}`; 
 
-        // Simulate API call delay
-        setTimeout(() => {
-            try {
-                // Generate a mock QR code data (in real app, this would come from backend)
-                const mockQRData = 'https://web.whatsapp.com/pairing/' + Math.random().toString(36).substr(2, 9);
-
-                // Create QR code
-                qrCodeInstance = new QRCode(qrContainer, {
-                    text: mockQRData,
-                    width: 256,
-                    height: 256,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-
-                hideLoading();
-                showStatus('QR code generated successfully. Scan with WhatsApp to pair.', 'success');
-
-                // Start pairing simulation
-                startPairingSimulation();
-
-            } catch (error) {
-                hideLoading();
-                showStatus('Failed to generate QR code. Please try again.', 'error');
-                console.error('QR Code generation error:', error);
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) {
+                throw new Error(`Server Error: ${response.status}`);
             }
-        }, 2000); // Simulate 2 second delay
-    }
 
-    // Function to simulate pairing process
-    function startPairingSimulation() {
-        // Clear any existing timeout
-        if (pairingTimeout) {
-            clearTimeout(pairingTimeout);
-        }
+            const data = await response.json();
 
-        // Simulate pairing success after 10-15 seconds
-        const pairingTime = Math.random() * 5000 + 10000; // 10-15 seconds
+            // 3. Handle Success
+            if (data.code) {
+                // Format code if needed (e.g., ABC-DEF)
+                let formattedCode = data.code;
+                if (data.code.length === 8 && !data.code.includes('-')) {
+                    formattedCode = `${data.code.slice(0, 4)}-${data.code.slice(4)}`;
+                }
+                
+                showPairingCode(formattedCode);
+                showStatus('Code received! Enter this code in WhatsApp > Linked Devices > Link with phone number.', 'success');
+                
+                // Optional: Start checking for connection status here
+                // startConnectionCheck(); 
 
-        pairingTimeout = setTimeout(() => {
-            showStatus('Pairing successful! Your WhatsApp account is now connected to the bot.', 'success');
-            // In a real app, you might redirect or update UI here
-        }, pairingTime);
-    }
-
-    // Function to refresh QR code
-    function refreshQRCode() {
-        if (pairingTimeout) {
-            clearTimeout(pairingTimeout);
-        }
-        generateQRCode();
-    }
-
-    // Event listeners
-    refreshBtn.addEventListener('click', refreshQRCode);
-
-    // Initialize on page load
-    generateQRCode();
-
-    // Mock WebSocket simulation for real-time updates
-    // In a real implementation, this would connect to a WebSocket server
-    function simulateWebSocketUpdates() {
-        // Simulate periodic status updates
-        setInterval(() => {
-            // Randomly show connection status updates
-            const messages = [
-                'Connected to WhatsApp servers',
-                'Waiting for scan...',
-                'Device detected, pairing in progress...'
-            ];
-
-            if (Math.random() < 0.3) { // 30% chance every 5 seconds
-                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                showStatus(randomMessage, 'info');
+            } else {
+                throw new Error(data.message || 'No pairing code received from server.');
             }
-        }, 5000);
+
+        } catch (error) {
+            // 4. Handle Error
+            console.error('Pairing Error:', error);
+            showStatus(`Error: ${error.message}. Is your bot server running?`, 'error');
+            showInputForm(); // Let user try again
+        }
     }
 
-    // Start WebSocket simulation
-    simulateWebSocketUpdates();
+    // --- Event Listeners ---
 
-    // Error handling for QR code library
-    window.addEventListener('error', function(e) {
-        if (e.error && e.error.name === 'QRCodeError') {
-            showStatus('QR code library error. Please refresh the page.', 'error');
+    submitPhoneBtn.addEventListener('click', getPairingCode);
+
+    // Allow pressing "Enter" in the phone input
+    phoneNumberInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            getPairingCode();
         }
     });
 
-    // Handle page visibility changes (e.g., user switches tabs)
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Pause pairing simulation when page is not visible
-            if (pairingTimeout) {
-                clearTimeout(pairingTimeout);
-            }
-        } else {
-            // Resume or restart pairing simulation
-            startPairingSimulation();
-        }
+    refreshBtn.addEventListener('click', function() {
+        showStatus('Resetting...', 'info');
+        phoneNumberInput.value = ''; // Clear input
+        showInputForm();
     });
+
+    // Initialize state
+    showInputForm();
 });
